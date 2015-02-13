@@ -12,11 +12,8 @@ public class Main {
         DataSource source = new DataSource("C:\\Users\\mhorowitzgelb\\Desktop\\lymph_train.arff");
         Instances instances = source.getDataSet();
         instances.setClassIndex(instances.numAttributes() -1);
-        Tree tree = new Tree();
-        double mutualInfoAB = tree.MutualInformation(instances, instances.attribute(4), instances.attribute(3));
-        double mutualInfoBA = tree.MutualInformation(instances, instances.attribute(3), instances.attribute(4));
+        Tree tree = new Tree(instances);
+        System.out.println("Done");
 
-        System.out.println(mutualInfoAB);
-        System.out.println(mutualInfoBA);
     }
 }
