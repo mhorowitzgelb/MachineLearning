@@ -1,4 +1,3 @@
-import org.w3c.dom.Attr;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -15,7 +14,7 @@ public class Tree {
     public ClassNode classNode;
     public Instances learningInstances;
 
-    public Tree(Instances learningInstances){
+    public Tree(Instances learningInstances, boolean TAN){
         this.learningInstances = learningInstances;
 
         this.classNode = new ClassNode(learningInstances.classAttribute());
@@ -27,7 +26,52 @@ public class Tree {
                 classNode.children.add(node);
             }
         }
-        Prim();
+        if(TAN)
+            Prim();
+        classNode.SetNonConditional(learningInstances);
+        for(NonClassNode node : classNode.children){
+            node.SetConditionalProbabilities(learningInstances);
+        }
+    }
+
+    public double ConditionalMutalInformation(Instances instances, Attribute a, Attribute b){
+        double sum = 0;
+        for(int i = 0; i < a.numValues(); i ++){
+            String aValue = a.value(i);
+            for(int j = 0; j < b.numValues(); j ++){
+                String bValue = b.value(j);
+                for(int k = 0; k < instances.classAttribute().numValues(); k ++){
+                    Attribute classAttribute = instances.classAttribute();
+                    String cValue = instances.classAttribute().value(k);
+
+                    HashMap<Attribute, String> abcMap = new HashMap<Attribute, String>();
+                    abcMap.put(a, aValue);
+                    abcMap.put(b, bValue);
+                    abcMap.put(classAttribute, cValue);
+
+                    HashMap<Attribute , String> cMap = new HashMap<Attribute, String>();
+                    cMap.put(classAttribute, cValue);
+
+                    HashMap<Attribute, String> acMap = new HashMap<Attribute, String>();
+                    acMap.put(classAttribute, cValue);
+                    acMap.put(a,aValue);
+
+                    HashMap<Attribute, String> bcMap = new HashMap<Attribute, String>();
+                    bcMap.put(b,bValue);
+                    bcMap.put(classAttribute, cValue);
+
+                    double pABC = (Count(instances, abcMap) + 1) / (instances.numInstances()  + a.numValues() * b.numValues() * classAttribute.numValues());
+                    double pABGivenC = (Count(instances, abcMap) + 1) / (Count(instances, cMap) + a.numValues()*b.numValues());
+                    double pAGivenC = (Count(instances, acMap) + 1) / (Count(instances, cMap) + a.numValues());
+                    double pBGivenC = (Count(instances, bcMap) + 1) / (Count(instances, cMap) + b.numValues());
+
+                    if(pABC != 0){
+                        sum += pABC * (Math.log(pABGivenC / (pAGivenC * pBGivenC)) / LOG_OF_2);
+                    }
+                }
+            }
+        }
+        return sum;
     }
 
     public double MutualInformation(Instances instances, Attribute a, Attribute b){
@@ -51,7 +95,7 @@ public class Tree {
 
 
                 if(pAB != 0)
-                    sum += pAB * Math.log(pAB/(pA*pB)) / LOG_OF_2;
+                    sum += pAB * (Math.log(pAB/(pA*pB)) / LOG_OF_2);
             }
         }
         return sum;
@@ -76,8 +120,26 @@ public class Tree {
     }
 
     public static double CountFirstClassValue(Instances instances, Map<Attribute, String> valueMap){
+        return CountAttributeValue(instances, valueMap, instances.classAttribute(), instances.classAttribute().value(0));
+    }
+
+    public static double CountAttributeValue(Instances instances, Map<Attribute, String> valueMap, Attribute attributeToCheck, String attributeValueToCheck){
         double count = 0;
         for(Instance instance : instances){
+            if(!instance.stringValue(attributeToCheck).equals(attributeValueToCheck))
+                continue;
+            boolean match = true;
+            for(Attribute attribute : valueMap.keySet()){
+                if(!instance.stringValue(attribute).equals(valueMap.get(attribute)))
+                {
+                    match = false;
+                    break;
+                }
+            }
+            if(match)
+                count ++;
+        }
+        return count;
     }
 
     public void Prim(){
@@ -90,7 +152,7 @@ public class Tree {
             NonClassNode maxEdgeB = null;
             for (NonClassNode aNode : vNew){
                 for (NonClassNode bNode : v) {
-                    double mutualInfo = MutualInformation(learningInstances,aNode.attribute, bNode.attribute);
+                    double mutualInfo = ConditionalMutalInformation(learningInstances, aNode.attribute, bNode.attribute);
                     if(mutualInfo > maxMutualInfo){
                         maxMutualInfo = mutualInfo;
                         maxEdgeA = aNode;
@@ -123,6 +185,25 @@ public class Tree {
             if(learningInstances.attribute(i).equals(attribute))
                 return i;
         }
-        return -1;
+        System.out.println("Invalid attribute for attribute index");
+        System.exit(0);
+        return 0;
+    }
+
+    public double Classify(Instance instance) throws Exception {
+        double pC = classNode.nonConditionalProbability;
+        double a = pC;
+        double b = 1 -pC;
+        for(NonClassNode node : classNode.children){
+            for(ConditionalProbability cP : node.conditionalProbabilities){
+                if(cP.Matches(instance,true)){
+                    if(cP.valueMap.get(instance.classAttribute()).equals(instance.classAttribute().value(0)))
+                        a *= cP.GetProbability(instance.stringValue(node.attribute));
+                    else if(cP.valueMap.get(instance.classAttribute()).equals(instance.classAttribute().value(1)))
+                        b *= cP.GetProbability(instance.stringValue(node.attribute));
+                }
+            }
+        }
+        return a / (a+b);
     }
 }

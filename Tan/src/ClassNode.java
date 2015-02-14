@@ -1,4 +1,5 @@
 import weka.core.Attribute;
+import weka.core.Instance;
 import weka.core.Instances;
 
 import java.util.ArrayList;
@@ -16,6 +17,15 @@ public class ClassNode extends Node{
     public ClassNode(Attribute attribute){
         this.attribute = attribute;
         children = new ArrayList<NonClassNode>();
+    }
+
+    public void SetNonConditional(Instances instances){
+        double count =0;
+        for(Instance instance : instances){
+            if(instance.stringValue(instance.classAttribute()).equals(instances.classAttribute().value(0)))
+                count ++;
+        }
+        nonConditionalProbability = count / instances.numInstances();
     }
 
     //public List<>
