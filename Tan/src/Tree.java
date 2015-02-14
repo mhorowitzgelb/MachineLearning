@@ -58,7 +58,7 @@ public class Tree {
     }
 
 
-    public double Count(Instances instances, Map<Attribute , String> valueMap){
+    public static double Count(Instances instances, Map<Attribute , String> valueMap){
         double count = 0;
         for(Instance instance : instances){
             boolean match = true;
@@ -73,6 +73,11 @@ public class Tree {
             }
         }
         return count;
+    }
+
+    public static double CountFirstClassValue(Instances instances, Map<Attribute, String> valueMap){
+        double count = 0;
+        for(Instance instance : instances){
     }
 
     public void Prim(){
@@ -106,6 +111,7 @@ public class Tree {
                 }
             }
             maxEdgeA.children.add(maxEdgeB);
+            maxEdgeB.parents.add(maxEdgeA);
             v.remove(maxEdgeB);
             vNew.add(maxEdgeB);
         }
