@@ -2,6 +2,8 @@ import info.monitorenter.gui.chart.Chart2D;
 import info.monitorenter.gui.chart.IAxis;
 import info.monitorenter.gui.chart.ITrace2D;
 import info.monitorenter.gui.chart.traces.Trace2DSimple;
+import info.monitorenter.gui.chart.traces.painters.TracePainterDisc;
+import info.monitorenter.gui.chart.traces.painters.TracePainterFill;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -37,11 +39,15 @@ public class Graphing {
         for(Instance instance : trainingInstances){
             if(instance.stringValue(instance.classAttribute()).equals(trainingInstances.classAttribute().value(0)))
                 classOneInstances.add(instance);
-            else if(instance.stringValue(instance.classAttribute()).equals(instance.classAttribute().value(1)));
+            else if(instance.stringValue(instance.classAttribute()).equals(instance.classAttribute().value(1)))
                 classTwoInstances.add(instance);
+            else{
+                System.out.println("What the fucl");
+                System.exit(0);
+            }
         }
 
-        classRatio = ((double) classOneInstances.size())/ classTwoInstances.size();
+        classRatio = ((double) classOneInstances.size())/ trainingInstances.size();
 
         Chart2D learningCurve = new Chart2D();
         learningCurve.getAxisX().setAxisTitle(new IAxis.AxisTitle("Training Size"));
@@ -90,9 +96,11 @@ public class Graphing {
         rocChart.getAxisY().setAxisTitle(new IAxis.AxisTitle("True Positive Rate"));
 
         ITrace2D rocNaiveCurve = new Trace2DSimple();
+        //rocNaiveCurve.setTracePainter(new TracePainterDisc());
         rocNaiveCurve.setColor(Color.BLUE);
         rocNaiveCurve.setName("Naive Bayes");
         ITrace2D rocTanCurve = new Trace2DSimple();
+        //rocTanCurve.setTracePainter(new TracePainterDisc());
         rocTanCurve.setName("TAN");
         rocTanCurve.setColor(Color.red);
         rocChart.addTrace(rocNaiveCurve);
@@ -140,7 +148,7 @@ public class Graphing {
                     falsePositiveTan++;
                 }
             }
-            rocNaiveCurve.addPoint(falsePositiveNaive/ class1, truePositiveNaive/class2);
+            //rocNaiveCurve.addPoint(falsePositiveNaive/ class1, truePositiveNaive/class2);
             rocTanCurve.addPoint(falsePositiveTan / class1, truePositiveTan / class2);
         }
 
@@ -152,7 +160,11 @@ public class Graphing {
 
     public static Tree StratifiedTree(int size, boolean tan){
 
+
         int numClassOne = (int)(size * classRatio);
+
+        if(size == 100)
+            return new Tree(trainingInstances,tan);
 
         ArrayList<Attribute> attributeList = new ArrayList<Attribute>();
         for(Enumeration<Attribute> e = trainingInstances.enumerateAttributes(); e.hasMoreElements(); )
@@ -203,6 +215,11 @@ public class Graphing {
                 return 0;
             else
                 return 1;
+        }
+
+        @Override
+        public String toString(){
+            return classTwoProbability + " " + instance.stringValue(instance.classAttribute());
         }
     }
 
